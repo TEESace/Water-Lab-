@@ -17,7 +17,7 @@ const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.88,.
 const landMat=mat(0xa5b99a),wallMat=mat(0xa5aaa0),floorMat=mat(0x6b827b),pipeMat=mat(0x91aeb3,{metalness:.28,roughness:.45}),gateMat=mat(0xed9e58,{metalness:.16,roughness:.5}),darkMat=mat(0x395d64,{metalness:.3}),waterMat=mat(0x318b9a,{transparent:true,opacity:.84,roughness:.28,metalness:.1,side:THREE.DoubleSide});
 const clockUniform={value:0};waterMat.onBeforeCompile=shader=>{shader.uniforms.time=clockUniform;shader.vertexShader='varying vec3 waterPos;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nwaterPos=position;');shader.fragmentShader='uniform float time;varying vec3 waterPos;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat r=sin(waterPos.x*1.8+waterPos.z*.7+time)*sin(waterPos.z*1.3-time*.4);diffuseColor.rgb+=r*.012;');};
 function box(w,h,d,material,x=0,y=0,z=0){const m=new THREE.Mesh(new THREE.BoxGeometry(w,Math.max(.025,h),d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;return m;}
-let city=null,showCity=true,showGrid=false,showLabels=true;
+let city=null,showGrid=false,showLabels=true;
 const world=new THREE.Group();scene.add(world);let pickables=[],nodeMeshes=new Map(),edgeMeshes=new Map(),labelElements=new Map();const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
 const sharedMaterials=new Set([landMat,wallMat,floorMat,pipeMat,gateMat,darkMat,waterMat]);
 function disposeGroup(group){group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&!sharedMaterials.has(o.material))o.material.dispose();});group.clear();}
@@ -27,7 +27,7 @@ function openingLimit(e){if(e.type==='pipe')return e.width;if(!e.dam)return 4;co
 function endPoint(n,other){const dx=other.x-n.x,dz=other.z-n.z;const t=Math.min(n.width/2/Math.max(.001,Math.abs(dx)),n.length/2/Math.max(.001,Math.abs(dz)));return new THREE.Vector3(n.x+dx*t,n.bed,n.z+dz*t);}
 function beamBetween(a,b,width,height,material,group){const len=a.distanceTo(b);const m=box(width,height,len,material);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),b.clone().sub(a).normalize());group.add(m);return m;}
 function rebuild({refreshCity=true}={}){
- if(refreshCity){if(city)city.dispose();city=createCity(state);scene.add(city.root);city.urban.visible=showCity;city.grid.visible=showGrid;}
+ if(refreshCity){if(city)city.dispose();city=createCity(state);scene.add(city.root);city.urban.visible=false;city.nature.visible=false;city.grid.visible=showGrid;}
  disposeGroup(world);pickables=[];nodeMeshes.clear();edgeMeshes.clear();$('#labels').replaceChildren();labelElements.clear();
  for(const n of state.nodes){
   const g=new THREE.Group();g.position.set(n.x,0,n.z);const w=n.width,l=n.length,b=n.bed,h=n.bank;
@@ -77,7 +77,7 @@ function rebuild({refreshCity=true}={}){
   world.add(g);if(e.dam&&e.type==='channel'){const base=Math.max(a.bed,b.bed),crest=e.crest??base+3,damHeight=Math.max(.5,crest-base),span=e.width+2.7,gateWidth=Math.min(1.65,e.width*.31),pier=.35,rotation=Math.atan2(dir.x,dir.z);const wall=new THREE.Group();wall.position.copy(center);wall.rotation.y=rotation;const wing=(span-2*gateWidth-3*pier)/2;let cursor=-span/2;for(const segment of [wing,pier,gateWidth,pier,gateWidth,pier,wing]){if(segment>.08){const x=cursor+segment/2;wall.add(box(segment,damHeight,2.2,mat(0xb7bdb7,{roughness:.84}),x,damHeight/2,0));if(Math.abs(x)>span*.36){wall.add(box(segment+.45,.36,3,mat(0x858f90),x,damHeight-.12,0));}}cursor+=segment;}const blades=[];if(e.gate)for(const x of [-gateWidth/2-pier/2,gateWidth/2+pier/2]){const blade=box(gateWidth,Math.max(.12,damHeight-e.opening),.42,gateMat,x,e.opening+(damHeight-e.opening)/2,0);wall.add(blade);blades.push(blade);const stem=box(.12,damHeight+1,.13,darkMat,x,damHeight/2+.3,0);wall.add(stem);const cap=box(gateWidth+.7,.24,.7,darkMat,x,damHeight-.16,0);wall.add(cap);}g.add(wall);gate={userData:{blades,damHeight},group:wall};}
   tag(g,'edge',e.id);edgeMeshes.set(e.id,{g,water,p,q,perp,dots,gate,center,pick,length});
  }
- $('#object-count').textContent=`${state.nodes.length} แหล่งน้ำ · ${city.stats.buildings} อาคาร · ${city.stats.bridges} สะพาน · ${state.edges.filter(e=>e.dam).length} เขื่อน`;
+ $('#object-count').textContent=`${state.nodes.length} แหล่งน้ำ · ${state.edges.length} ทางเชื่อม · ${state.edges.filter(e=>e.dam).length} เขื่อน`;
  updateVisuals(0);renderInspector();
 }
 function updateVisuals(t){
@@ -163,7 +163,6 @@ $('#confirm-cancel').onclick=()=>$('#confirm-dialog').close();$('#confirm-ok').o
 $('#example-btn').onclick=()=>confirmActionDialog('โหลดฉากตัวอย่าง?','การจัดวางและผลทดลองปัจจุบันจะถูกแทนที่ด้วยฉากเริ่มต้น',()=>{setRunning(false);state=example();snapshot=structuredClone(state);selected={kind:'node',id:'n3'};setMode('select');syncInputs();rebuild();});
 $('#clear-btn').onclick=()=>confirmActionDialog('เริ่มพื้นที่ว่าง?','ลบแหล่งน้ำและทางเชื่อมทั้งหมด เพื่อเริ่มออกแบบใหม่',()=>{setRunning(false);state={nodes:[],edges:[],time:0,inputRate:4,outputRate:3,inflow:0,outflow:0,overflow:0,initial:0};snapshot=structuredClone(state);selected=null;setMode('river');syncInputs();rebuild();});
 $('#help-btn').onclick=()=>$('#help-dialog').showModal();$('#orbit-btn').onclick=()=>setMode(mode==='orbit'?'select':'orbit');$('#top-btn').onclick=()=>{camera.position.set(0,290,.1);controls.target.set(0,0,0);controls.update();updateVisuals(state.time);};$('#home-btn').onclick=()=>fitCamera();$('#grid-btn').onclick=()=>{showGrid=!showGrid;city.grid.visible=showGrid;$('#grid-btn').classList.toggle('on',showGrid);$('#grid-btn').setAttribute('aria-pressed',String(showGrid));};
-$('#city-btn').onclick=()=>{showCity=!showCity;city.urban.visible=showCity;$('#city-btn').classList.toggle('on',showCity);$('#city-btn').setAttribute('aria-pressed',String(showCity));};
 $('#labels-btn').onclick=()=>{showLabels=!showLabels;$('#labels-btn').classList.toggle('on',showLabels);$('#labels-btn').setAttribute('aria-pressed',String(showLabels));updateVisuals(state.time);};
 document.addEventListener('keydown',ev=>{if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)||$('dialog[open]'))return;if(ev.key==='Escape')setMode('select');if(ev.key==='1')setMode('select');if(ev.key==='Delete'||ev.key==='Backspace'){ev.preventDefault();deleteSelected();}if(ev.code==='Space'){ev.preventDefault();setRunning(!running);}});
 function fitCamera(){const distance=370/Math.min(1,host.clientWidth/host.clientHeight);camera.position.set(180,175,235).normalize().multiplyScalar(distance);controls.target.set(0,0,0);controls.update();updateVisuals(state.time);}
