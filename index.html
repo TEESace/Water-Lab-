@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123a45"><meta name="description" content="ห้องทดลองระบบน้ำ 3D สเกลเมตร สร้างแม่น้ำ คลอง บึงและประตูระบายน้ำ แล้วทดลองการไหล"><title>Waterlab 3D · เมืองริมน้ำ</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23123a45'/%3E%3Cpath d='M5 12q5-6 11 0t11 0M5 20q5-6 11 0t11 0' fill='none' stroke='%235fe2d5' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css"><script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script></head>
+<body>
+<header class="app-header"><a class="brand" href="./" aria-label="Waterlab หน้าหลัก"><span class="brand-mark">≈</span><span>WATERLAB<span class="brand-tag">3D SANDBOX</span></span></a><div class="header-divider"></div><div class="project-name">ห้องทดลองระบบน้ำ <span>เมืองริมน้ำ · ภูมิประเทศ 3D</span></div><div class="header-right"><span class="unit-pill">1 หน่วย = 1 เมตร</span><button id="help-btn" class="icon-btn" aria-label="วิธีใช้งาน">?</button></div></header>
+<main class="workspace">
+<aside class="tool-panel"><div class="panel-heading"><span class="eyebrow">BUILD YOUR WATERWAY</span><h1>ออกแบบทางน้ำ</h1><p>ลากชิ้นส่วนลงบนแผนที่</p></div>
+<div class="tool-list" id="tools">
+<button class="tool active" data-tool="select"><span class="tool-icon">⌖</span><span><b>เลือก / ย้าย</b><small>เลือกชิ้นส่วนเพื่อปรับค่า</small></span><kbd>1</kbd></button>
+<button class="tool" data-tool="river" draggable="true"><span class="tool-icon river-icon">≋</span><span><b>แม่น้ำ</b><small>ทางน้ำหลัก</small></span></button>
+<button class="tool" data-tool="canal" draggable="true"><span class="tool-icon canal-icon">Ⅱ</span><span><b>คลอง</b><small>แบ่งเส้นทางการไหล</small></span></button>
+<button class="tool" data-tool="pond" draggable="true"><span class="tool-icon pond-icon">▱</span><span><b>บึง</b><small>เก็บและพักน้ำ</small></span></button>
+<div class="tool-separator"></div>
+<button class="tool" data-tool="channel"><span class="tool-icon">⌁</span><span><b>เชื่อมคลอง</b><small>เลือกต้นทางและปลายทาง</small></span></button>
+<button class="tool" data-tool="pipe"><span class="tool-icon">⊏</span><span><b>เชื่อมท่อ</b><small>เลือกแหล่งน้ำ 2 จุด</small></span></button>
+<button class="tool" data-tool="gate" draggable="true"><span class="tool-icon gate-icon">⊞</span><span><b>ประตูระบายน้ำ</b><small>วางบนเส้นทางเชื่อม</small></span></button>
+<button class="tool" data-tool="dam"><span class="tool-icon dam-icon">▥</span><span><b>เขื่อนกักเก็บน้ำ</b><small>วางขวางคลอง</small></span></button>
+</div>
+<div class="source-control"><div class="label-row"><label for="inflow">น้ำเข้าต้นแม่น้ำ</label><strong><span id="inflow-value">4.0</span> <small>ม³/วิ</small></strong></div><input id="inflow" type="range" min="0" max="30" step=".5" value="4"><div class="range-labels"><span>0</span><span>30 ม³/วิ</span></div></div>
+<div class="left-bottom"><span class="small-label">ฉากทดลอง</span><button id="example-btn" class="secondary-btn">↺ &nbsp; โหลดเมืองตัวอย่าง</button><button id="clear-btn" class="text-btn">เริ่มพื้นที่ว่าง</button></div>
+</aside>
+<section class="viewport" id="viewport" aria-label="แผนที่ระบบน้ำสามมิติ">
+<div id="canvas-host"></div><div id="labels" aria-hidden="true"></div><div id="webgl-error" hidden><h2>เปิดภาพ 3D ไม่สำเร็จ</h2><p>ลองเปิดเว็บด้วย Chrome หรือ Edge ที่เปิดการเร่งกราฟิก แล้วโหลดหน้าใหม่</p><button onclick="location.reload()">โหลดใหม่</button></div>
+<div class="map-heading"><span class="map-index">01</span><div><h2>เมืองริมน้ำ</h2><span>พื้นที่ออกแบบ 200 × 200 ม. · ระดับอ้างอิง 0.00 ม.</span></div></div>
+<div class="view-controls"><button id="orbit-btn" class="icon-btn" title="หมุนกล้อง" aria-label="โหมดหมุนกล้อง">⟳</button><button id="top-btn" class="icon-btn" title="มุมมองจากด้านบน" aria-label="มุมมองจากด้านบน">▦</button><button id="home-btn" class="icon-btn" title="มุมมองเริ่มต้น" aria-label="มุมมองเริ่มต้น">⌂</button><button id="grid-btn" class="icon-btn" title="เส้นตาราง" aria-label="แสดงเส้นตารางภูมิประเทศ" aria-pressed="false">⌗</button><button id="city-btn" class="icon-btn on" title="แสดงอาคารและถนน" aria-label="แสดงอาคารและถนน" aria-pressed="true">▥</button><button id="labels-btn" class="icon-btn on" title="แสดงป้ายระดับน้ำ" aria-label="แสดงป้ายระดับน้ำ" aria-pressed="true">Aa</button></div>
+<div class="mode-hint" id="mode-hint">เลือกชิ้นส่วนเพื่อดูระดับน้ำ · ลากเพื่อย้าย</div>
+<div class="compass"><span>N</span><i></i><small>เหนือ</small></div>
+<div class="map-legend"><span><i class="legend-water"></i>ทางน้ำ</span><span><i class="legend-gate"></i>ประตู</span><span><i class="legend-dam"></i>เขื่อน</span><span><i class="legend-spill"></i>น้ำล้น</span></div>
+<div class="simulation-bar"><button id="play-btn" class="play-btn"><span class="play-glyph" aria-hidden="true"></span> เริ่มจำลอง</button><div class="sim-divider"></div><label for="speed" class="sr-only">ความเร็วการจำลอง</label><select id="speed"><option value="1">1×</option><option value="5" selected>5×</option><option value="20">20×</option></select><span class="sim-time" id="sim-time">00:00</span><button id="reset-btn" class="icon-btn" title="คืนค่าก่อนเริ่มจำลอง" aria-label="รีเซ็ตการจำลอง">↺</button></div>
+<div class="scale-bar"><span>20 เมตร</span><i></i></div><div id="toast" role="status" aria-live="polite"></div>
+</section>
+<aside class="inspector"><div class="inspector-top"><span class="eyebrow">LIVE INSPECTOR</span><span class="state-badge" id="state-badge">หยุดชั่วคราว</span></div><div id="selection-panel"></div>
+<div class="system-stats"><div class="section-title">สมดุลน้ำทั้งระบบ <span>ม³</span></div><div class="stat-row"><span>น้ำที่เก็บอยู่</span><strong id="total-water">0</strong></div><div class="stat-row"><span>น้ำไหลเข้าสะสม</span><strong id="total-in">0</strong></div><div class="stat-row"><span>ระบายออกสะสม</span><strong id="total-out">0</strong></div><div class="stat-row overflow-row"><span>น้ำล้นสะสม</span><strong id="total-overflow">0</strong></div><p class="balance-note" id="balance-note">ปริมาณน้ำสมดุล</p></div>
+<div class="datum-note"><span>ⓘ</span><p>ระดับเป็นเมตรจากจุดอ้างอิงสมมติ 0.00 ม. ความลึกวัดจากท้องน้ำถึงผิวน้ำ</p></div></aside>
+</main>
+<footer class="statusbar"><span><i></i> <span id="object-count">5 แหล่งน้ำ · 5 ทางเชื่อม</span></span><span>ลากขวา: หมุนกล้อง &nbsp; · &nbsp; ล้อเมาส์: ซูม &nbsp; · &nbsp; Esc: ยกเลิก</span><span>ภูมิประเทศสมมติ · การไหลอย่างง่าย</span></footer>
+<dialog id="help-dialog"><form method="dialog"><button class="dialog-close icon-btn" aria-label="ปิด">×</button></form><span class="eyebrow">QUICK START</span><h2>ทดลองจัดการน้ำด้วยตัวเอง</h2><ol><li><b>สร้างทางน้ำ</b><p>ลากแม่น้ำ คลอง หรือบึงลงแผนที่ หรือเลือกเครื่องมือแล้วคลิกจุดที่ต้องการ</p></li><li><b>เชื่อมสองจุด</b><p>เลือก “เชื่อมคลอง” หรือ “เชื่อมท่อ” แล้วคลิกแหล่งน้ำต้นทางและปลายทาง น้ำไหลได้ทั้งสองทิศตามความต่างระดับ</p></li><li><b>สร้างเขื่อนและควบคุมประตู</b><p>เลือกเครื่องมือเขื่อนแล้วคลิกคลอง หรือวางประตูบนทางเชื่อม ปรับช่องเปิดและระดับสันเขื่อนเป็นเมตรได้ที่แผงด้านขวา</p></li><li><b>เริ่มทดลอง</b><p>กดเริ่มจำลอง ปรับน้ำเข้าและประตูระหว่างรันได้ หยุดก่อนย้ายหรือปรับขนาดชิ้นส่วน การแก้โครงสร้างจะเริ่มการนับสมดุลน้ำรอบใหม่</p></li></ol><p class="help-foot">เมืองมีภูมิประเทศ ถนน สะพาน และเขื่อนจริงในฉาก 3D ใช้ปุ่ม ▥ ซ่อนอาคารขณะจัดวาง และปุ่ม Aa ซ่อนป้ายระดับน้ำ การจำลองน้ำล้นยังนับปริมาตรสะสมที่แหล่งน้ำ ไม่ได้คำนวณการแผ่ท่วมถนนหรืออาคาร<br><br>คลิกขวาลากเพื่อหมุนกล้อง หรือเลือกปุ่ม ⟳ · บนจอสัมผัสใช้สองนิ้วซูม · 1 หน่วยในฉาก = 1 เมตรทุกแกน</p></dialog>
+<dialog id="confirm-dialog"><h2 id="confirm-title">เริ่มใหม่?</h2><p id="confirm-text"></p><div class="dialog-actions"><button id="confirm-cancel" class="secondary-btn">ยกเลิก</button><button id="confirm-ok" class="primary-btn">ยืนยัน</button></div></dialog>
+<script type="module" src="./app.js"></script></body></html>
