@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {createCity} from './city.js';
-import {OrbitControls} from './vendor/OrbitControls.js';
+import {OrbitControls} from './OrbitControls.js';
 import {example,area,head,total,step,balance,rebase,TYPES,validateNode} from './sim.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(v,d=2)=>Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
